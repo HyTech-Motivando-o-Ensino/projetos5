@@ -9,6 +9,12 @@ db = mysql.connector.connect(
     database="pj5data"
 )
 
+mycursor = db.cursor()
+mycursor.execute('SHOW TABLES')
+
+for r in mycursor:
+    print(r)
+
 doc = dict()
 
 with open('curriculos/cesar-franca.xml') as fd:
