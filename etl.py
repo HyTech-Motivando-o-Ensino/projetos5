@@ -10,16 +10,16 @@ db = mysql.connector.connect(
 )
 
 mycursor = db.cursor()
-mycursor.execute('SHOW TABLES')
 
-for r in mycursor:
-    print(r)
+for line in open("minified-ddl.sql"):
+    print(line)
+    mycursor.execute(line)
 
-doc = dict()
+# doc = dict()
 
-with open('curriculos/cesar-franca.xml') as fd:
-    doc = xmltodict.parse(fd.read())
+# with open('curriculos/cesar-franca.xml') as fd:
+#     doc = xmltodict.parse(fd.read())
 
-with open('cv.json', 'w') as output:
-    json.dump(doc, output)
+# with open('cv.json', 'w') as output:
+#     json.dump(doc, output)
 
