@@ -5,7 +5,7 @@ ENV MYSQL_DATABASE pj5data
 ENV MYSQL_USER user
 ENV MYSQL_PASSWORD password
 
-# COPY init.sql /docker-entrypoint-initdb.d/
-COPY ddl.sql ./
+# COPY ddl.sql /docker-entrypoint-initdb.d/
+COPY scripts/ddl.sql ./
 
 EXPOSE 3306

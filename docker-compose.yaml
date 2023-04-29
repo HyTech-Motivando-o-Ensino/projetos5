@@ -2,7 +2,10 @@ version: '3'
 
 services:
   db:
-    build: .
+    container_name: mysql_db
+    build:
+      context: .
+      dockerfile: Dockerfile.db
     ports:
       - "3306:3306"
     volumes:
