@@ -2,8 +2,23 @@ import xmltodict
 import mysql.connector
 from xml.etree import ElementTree as ET
 
+conn = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="password",
+    database="pj5data",
+    buffered=True
+)
 
-def xmltodict_extraction(cur):
+cur = conn.cursor(buffered=True)
+
+SQL_INSERTS = {
+    "insert_author": "INSERT INTO autores (nome_completo, resumo_cv, colaborador_cesar) VALUES (%s, %s, %s)",
+    "insert_article": "INSERT INTO artigos (natureza, titulo, ano, idioma, doi, periodico_revista_id, pdf_file) VALUES(%s, %s, %s, %s, %s, 0, %s);"
+}
+
+def xmltodict_extraction():
+
     query = '''
     SELECT * FROM arquivos_xml t
     WHERE t.status_extracao = 0'''
@@ -34,6 +49,7 @@ def xmltodict_extraction(cur):
                 print("Autores:")
                 print(article["AUTORES"])
                 print("--------------------------")
+
         else:
                 print("--------- ARTIGO ---------")
                 print("Titulo:", articles["DADOS-BASICOS-DO-ARTIGO"]["@TITULO-DO-ARTIGO"])
@@ -46,7 +62,9 @@ def xmltodict_extraction(cur):
                 print(article["AUTORES"])
                 print("--------------------------")
 
-def etree_extraction(cur):
+def etree_extraction():
+    global cur
+    global conn
     query = '''
     SELECT * FROM arquivos_xml t
     WHERE t.status_extracao = 0'''
@@ -54,6 +72,10 @@ def etree_extraction(cur):
     cur.execute(query)
 
     for (id, created, updated, payload, status) in cur:
+        SQL_DATA = {
+            "author_id": 0
+        }
+
         doc = ET.fromstring(payload)
         full_name = doc.find("./DADOS-GERAIS").attrib["NOME-COMPLETO"]
         cv_description = doc.find("./DADOS-GERAIS/RESUMO-CV").attrib["TEXTO-RESUMO-CV-RH"]
@@ -62,6 +84,13 @@ def etree_extraction(cur):
 
         print(f"Autor: {full_name}")
         print(f"Resumo CV: {cv_description}")
+        
+        tuple_author = (full_name, cv_description, 1)
+        newcur = conn.cursor(buffered=True)
+        newcur.execute(SQL_INSERTS["insert_author"], tuple_author)
+        conn.commit()
+        SQL_DATA["author_id"] = cur.lastrowid
+
         for article in articles:
             basic_data_tag = article.find("./DADOS-BASICOS-DO-ARTIGO")
             details_tag = article.find("./DETALHAMENTO-DO-ARTIGO")
@@ -122,16 +151,7 @@ def etree_extraction(cur):
 
 
 
-conn = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="password",
-    database="pj5data"
-)
-
-cur = conn.cursor()
-
-etree_extraction(cur)
+etree_extraction()
 
 cur.close()
 conn.close()
