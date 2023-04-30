@@ -1,9 +1,22 @@
+USE pj5data;
+
+CREATE TABLE IF NOT EXISTS arquivos_xml (
+    id INTEGER NOT NULL AUTO_INCREMENT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    payload MEDIUMTEXT,
+    status_extracao INTEGER,
+    PRIMARY KEY (id)
+);
+
 CREATE TABLE IF NOT EXISTS autores (
     id INTEGER NOT NULL AUTO_INCREMENT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     nome_completo VARCHAR(255),
-    resumo_cv TEXT,
+    resumo_cv VARCHAR(255),
     colaborador_cesar INTEGER,
-    PRIMARY KEY(id)
+    PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS artigos (
@@ -15,7 +28,7 @@ CREATE TABLE IF NOT EXISTS artigos (
     doi VARCHAR(100) UNIQUE,
     periodico_revista_id INTEGER,
     pdf_file VARCHAR(100),
-    PRIMARY KEY(id)
+    PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS autores_artigos (
@@ -29,7 +42,7 @@ CREATE TABLE IF NOT EXISTS periodicos_revistas (
     issn VARCHAR(100),
     nome VARCHAR(100),
     estrato VARCHAR(50),
-    PRIMARY KEY(id)
+    PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS orientacoes (
@@ -38,13 +51,13 @@ CREATE TABLE IF NOT EXISTS orientacoes (
     ano INTEGER,
     curso_id INTEGER,
     orientador_id INTEGER,
-    PRIMARY KEY(id)
+    PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS cursos (
     id INTEGER NOT NULL AUTO_INCREMENT,
     nome VARCHAR(100) UNIQUE,
-    PRIMARY KEY(id)
+    PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS orientacao_area_conhecimento (
@@ -53,9 +66,9 @@ CREATE TABLE IF NOT EXISTS orientacao_area_conhecimento (
 );
 
 CREATE TABLE IF NOT EXISTS grande_area_conhecimento (
-	id INTEGER NOT NULL AUTO_INCREMENT,
+    id INTEGER NOT NULL AUTO_INCREMENT,
 	nome VARCHAR(255),
-    PRIMARY KEY(id)
+    PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS autores_area_conhecimento (
@@ -70,9 +83,18 @@ CREATE TABLE IF NOT EXISTS artigo_area_conhecimento (
 	PRIMARY KEY (area_conhecimento_id, artigo_id)
 );
 
-ALTER TABLE autores_artigos ADD CONSTRAINT FK_autores_artigos_2
-    FOREIGN KEY (autor_id)
-    REFERENCES autores (id);
+IF NOT EXISTS (
+    SELECT NULL
+    FROM information_schema.TABLE_CONSTRAINTS
+    WHERE
+        CONSTRAINT_SCHEMA = DATABASE() AND
+        CONSTRAINT_NAME = 'FK_autores_artigos_2' AND
+        CONSTRAINT_TYPE = 'FOREIGN_KEY'
+)
+THEN
+    ALTER TABLE autores_artigos ADD CONSTRAINT FK_autores_artigos_2
+        FOREIGN KEY (autor_id)
+        REFERENCES autores (id);
  
 ALTER TABLE autores_artigos ADD CONSTRAINT FK_autores_artigos_3
     FOREIGN KEY (artigo_id)
