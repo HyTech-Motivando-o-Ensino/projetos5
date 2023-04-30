@@ -1,0 +1,13 @@
+USE pj5data;
+
+INSERT INTO grande_area_conhecimento(nome)
+VALUES ("CIENCIAS_EXATAS_E_DA_TERRA"),
+       ("CIENCIAS_BIOLOGICAS"),
+       ("ENGENHARIAS"),
+       ("CIENCIAS_DA_SAUDE"),
+       ("CIENCIAS_AGRARIAS"),
+       ("CIENCIAS_SOCIAIS_APLICADAS"),
+       ("CIENCIAS_HUMANAS"),
+       ("CIENCIAS_SOCIAIS_APLICADAS"),
+       ("LINGUISTICA_LETRAS_E_ARTES"),
+       ("OUTRA");

@@ -1,0 +1,12 @@
+FROM python:3
+
+WORKDIR /usr/src/app
+
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY ./scripts/* .
+ADD ./curriculos ./curriculos
+RUN chmod 777 ./startup_script.sh
+
+ENTRYPOINT [ "./startup_script.sh" ]

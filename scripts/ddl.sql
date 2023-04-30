@@ -83,35 +83,18 @@ CREATE TABLE IF NOT EXISTS artigo_area_conhecimento (
 	PRIMARY KEY (area_conhecimento_id, artigo_id)
 );
 
-IF NOT EXISTS (
-    SELECT NULL
-    FROM information_schema.TABLE_CONSTRAINTS
-    WHERE
-        CONSTRAINT_SCHEMA = DATABASE() AND
-        CONSTRAINT_NAME = 'FK_autores_artigos_2' AND
-        CONSTRAINT_TYPE = 'FOREIGN_KEY'
-)
-THEN
-    ALTER TABLE autores_artigos ADD CONSTRAINT FK_autores_artigos_2
-        FOREIGN KEY (autor_id)
-        REFERENCES autores (id);
+ALTER TABLE autores_artigos ADD CONSTRAINT FK_autores_artigos_autores
+    FOREIGN KEY (autor_id)
+    REFERENCES autores (id);
  
-ALTER TABLE autores_artigos ADD CONSTRAINT FK_autores_artigos_3
+ALTER TABLE autores_artigos ADD CONSTRAINT FK_autores_artigos_artigos
     FOREIGN KEY (artigo_id)
     REFERENCES artigos (id);
  
-ALTER TABLE artigos ADD CONSTRAINT FK_artigos_3
+ALTER TABLE artigos ADD CONSTRAINT FK_artigos_periodicos_revistas
     FOREIGN KEY (periodico_revista_id)
     REFERENCES periodicos_revistas (id);
  
-ALTER TABLE autores_artigos ADD CONSTRAINT FK_artigos_4
-    FOREIGN KEY (artigo_id)
-    REFERENCES artigos (id);
- 
-ALTER TABLE autores_artigos ADD CONSTRAINT FK_autores_2
-    FOREIGN KEY (autor_id)
-    REFERENCES autores (id);
-
 ALTER TABLE orientacoes ADD CONSTRAINT FK_orientacoes_autores
     FOREIGN KEY (orientador_id)
     REFERENCES autores (id);
@@ -124,18 +107,18 @@ ALTER TABLE orientacao_area_conhecimento ADD CONSTRAINT FK_orienacao_area_conhec
     FOREIGN KEY (area_conhecimento_id)
     REFERENCES grande_area_conhecimento (id);
 
-ALTER TABLE autores_area_conhecimento ADD CONSTRAINT
+ALTER TABLE autores_area_conhecimento ADD CONSTRAINT FK_autores_area_conhecimento_autores
  FOREIGN KEY(autor_id) 
  REFERENCES autores(id);
 
-ALTER TABLE autores_area_conhecimento ADD CONSTRAINT
+ALTER TABLE autores_area_conhecimento ADD CONSTRAINT FK_autores_area_conhecimento_area_conhecimento
  FOREIGN KEY(area_conhecimento_id) 
  REFERENCES grande_area_conhecimento(id);
 
-ALTER TABLE artigo_area_conhecimento ADD CONSTRAINT
+ALTER TABLE artigo_area_conhecimento ADD CONSTRAINT FK_artigo_area_conhecimento_area_conhecimento
  FOREIGN KEY(area_conhecimento_id) 
  REFERENCES grande_area_conhecimento(id);
 
-ALTER TABLE artigo_area_conhecimento ADD CONSTRAINT
+ALTER TABLE artigo_area_conhecimento ADD CONSTRAINT FK_artigo_area_conhecimento_artigo
  FOREIGN KEY(artigo_id) 
  REFERENCES artigos(id);
