@@ -31,6 +31,7 @@ def etree_extraction():
 
     for (id, created, updated, payload, status) in cur:
         SQL_DATA = {
+            "arquivo_id": id,
             "author_id": 0,
             "article_id": 0
         }
@@ -134,10 +135,13 @@ def etree_extraction():
 
                 # print("--------------------------")
 
+        query = "UPDATE arquivos_xml t SET status_extracao = %s WHERE t.id = %s"
+        newcur.execute(query, (1, SQL_DATA["arquivo_id"]))
+        conn.commit()
 
 
 etree_extraction()
-print("[DEBUG] Finished executing downloader.py statements")
+print("[DEBUG] Finished executing extractor.py statements")
 
 cur.close()
 conn.close()

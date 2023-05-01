@@ -15,9 +15,12 @@ cur = conn.cursor()
 try:
     # for file in os.listdir("../curriculos"):
     for file in os.listdir("./curriculos"):
-        # print(file)
         # tree = ET.parse(f"../curriculos/{file}")
-        tree = ET.parse(f"./curriculos/{file}")
+        # tree = ET.parse(f"./curriculos/{file}")
+        with open(f"./curriculos/{file}", "rb") as f:
+            root = ET.fromstring(f.read())
+            tree = ET.ElementTree(root)
+
         xml_string = ET.tostring(tree.getroot(), encoding='utf-8')
         # print("[DEBUG]", xml_string)
 
