@@ -1,11 +1,11 @@
 up:
-	docker-compose up --build -d
+	docker-compose up --build
 
 down:
 	docker-compose down
 
-create-tables:
-	docker exec mysql_db /bin/sh -c 'mysql -u user -ppassword < ddl.sql'
+down-reset:
+	docker-compose down -v
 
 stop:
 	docker-compose stop

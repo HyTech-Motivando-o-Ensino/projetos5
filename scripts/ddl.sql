@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS autores (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     nome_completo VARCHAR(255),
-    resumo_cv VARCHAR(255),
+    resumo_cv TEXT,
     colaborador_cesar INTEGER,
     PRIMARY KEY (id)
 );
@@ -22,11 +22,11 @@ CREATE TABLE IF NOT EXISTS autores (
 CREATE TABLE IF NOT EXISTS artigos (
     id INTEGER NOT NULL AUTO_INCREMENT,
     natureza VARCHAR(255),
-    titulo VARCHAR(255),
-    ano DATE,
+    titulo VARCHAR(500),
+    ano INTEGER,
     idioma VARCHAR(100),
-    doi VARCHAR(100) UNIQUE,
-    periodico_revista_id INTEGER,
+    doi VARCHAR(100),
+    periodico_revista_issn VARCHAR(100),
     pdf_file VARCHAR(100),
     PRIMARY KEY (id)
 );
@@ -40,16 +40,19 @@ CREATE TABLE IF NOT EXISTS autores_artigos (
 CREATE TABLE IF NOT EXISTS periodicos_revistas (
     id INTEGER NOT NULL AUTO_INCREMENT,
     issn VARCHAR(100),
-    nome VARCHAR(100),
+    nome VARCHAR(255),
     estrato VARCHAR(50),
     PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS orientacoes (
     id INTEGER NOT NULL AUTO_INCREMENT,
-    titulo VARCHAR(100),
+    titulo VARCHAR(500),
     ano INTEGER,
-    curso_id INTEGER,
+    natureza VARCHAR(100),
+    -- curso_id INTEGER,
+    curso VARCHAR(200),
+    instituicao VARCHAR(200),
     orientador_id INTEGER,
     PRIMARY KEY (id)
 );
@@ -91,17 +94,17 @@ ALTER TABLE autores_artigos ADD CONSTRAINT FK_autores_artigos_artigos
     FOREIGN KEY (artigo_id)
     REFERENCES artigos (id);
  
-ALTER TABLE artigos ADD CONSTRAINT FK_artigos_periodicos_revistas
-    FOREIGN KEY (periodico_revista_id)
-    REFERENCES periodicos_revistas (id);
+-- ALTER TABLE artigos ADD CONSTRAINT FK_artigos_periodicos_revistas
+--     FOREIGN KEY (periodico_revista_id)
+--     REFERENCES periodicos_revistas (id);
  
 ALTER TABLE orientacoes ADD CONSTRAINT FK_orientacoes_autores
     FOREIGN KEY (orientador_id)
     REFERENCES autores (id);
 
-ALTER TABLE orientacoes ADD CONSTRAINT FK_orientacoes_cursos
-    FOREIGN KEY (curso_id)
-    REFERENCES cursos (id);
+-- ALTER TABLE orientacoes ADD CONSTRAINT FK_orientacoes_cursos
+--     FOREIGN KEY (curso_id)
+--     REFERENCES cursos (id);
 
 ALTER TABLE orientacao_area_conhecimento ADD CONSTRAINT FK_orienacao_area_conhecimento_area_conhecimento
     FOREIGN KEY (area_conhecimento_id)

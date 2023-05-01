@@ -15,10 +15,10 @@ cur = conn.cursor()
 try:
     # for file in os.listdir("../curriculos"):
     for file in os.listdir("./curriculos"):
-        print(file)
+        # print(file)
         # tree = ET.parse(f"../curriculos/{file}")
         tree = ET.parse(f"./curriculos/{file}")
-        xml_string = ET.tostring(tree.getroot(), encoding='unicode')
+        xml_string = ET.tostring(tree.getroot(), encoding='utf-8')
         # print("[DEBUG]", xml_string)
 
         query = "INSERT INTO arquivos_xml (payload, status_extracao) VALUES (%s, %s)"
@@ -27,9 +27,11 @@ try:
         cur.execute(query, values)
 
     conn.commit()
-except:
+except Exception as e:
+    print(e)
     conn.rollback()
 finally:
+    print("[DEBUG] Finished executing downloader.py statements")
     cur.close()
     conn.close()
 

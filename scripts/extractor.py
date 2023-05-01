@@ -3,7 +3,8 @@ import mysql.connector
 from xml.etree import ElementTree as ET
 
 conn = mysql.connector.connect(
-    host="localhost",
+    # host="localhost",
+    host="db",
     user="root",
     password="password",
     database="pj5data",
@@ -14,53 +15,10 @@ cur = conn.cursor(buffered=True)
 
 SQL_INSERTS = {
     "insert_author": "INSERT INTO autores (nome_completo, resumo_cv, colaborador_cesar) VALUES (%s, %s, %s)",
-    "insert_article": "INSERT INTO artigos (natureza, titulo, ano, idioma, doi, periodico_revista_id, pdf_file) VALUES(%s, %s, %s, %s, %s, 0, %s);"
+    "insert_article": "INSERT INTO artigos (natureza, titulo, ano, idioma, doi, periodico_revista_issn, pdf_file) VALUES(%s, %s, %s, %s, %s, %s, %s);",
+    "insert_author_article": "INSERT INTO autores_artigos (autor_id, artigo_id) VALUES(%s, %s)",
+    "insert_supervision": "INSERT INTO orientacoes (titulo, ano, natureza, curso, instituicao, orientador_id) VALUES (%s, %s, %s, %s, %s, %s)",
 }
-
-def xmltodict_extraction():
-
-    query = '''
-    SELECT * FROM arquivos_xml t
-    WHERE t.status_extracao = 0'''
-
-    cur.execute(query)
-
-    for (id, created, updated, payload, status) in cur:
-        doc = xmltodict.parse(payload, encoding='utf-8')
-        # print(doc)
-        full_name = doc['CURRICULO-VITAE']['DADOS-GERAIS']['@NOME-COMPLETO']
-        cv_description = doc['CURRICULO-VITAE']['DADOS-GERAIS']['RESUMO-CV']['@TEXTO-RESUMO-CV-RH']
-        articles = doc['CURRICULO-VITAE']['PRODUCAO-BIBLIOGRAFICA']["ARTIGOS-PUBLICADOS"]["ARTIGO-PUBLICADO"]
-        is_employee = True
-
-        print(f"Autor: {full_name}")
-        print(f"Resumo CV: {cv_description}")
-
-        if type(articles) == list:
-            for article in articles:
-                # print(article)
-                print("--------- ARTIGO ---------")
-                print("Titulo:", article["DADOS-BASICOS-DO-ARTIGO"]["@TITULO-DO-ARTIGO"])
-                print("Ano:", article["DADOS-BASICOS-DO-ARTIGO"]["@ANO-DO-ARTIGO"])
-                print("Idioma:", article["DADOS-BASICOS-DO-ARTIGO"]["@IDIOMA"])
-                print("Natureza:", article["DADOS-BASICOS-DO-ARTIGO"]["@NATUREZA"])
-                print("DOI:", article["DADOS-BASICOS-DO-ARTIGO"]["@DOI"])
-                print("Periodico:", article["DETALHAMENTO-DO-ARTIGO"]["@TITULO-DO-PERIODICO-OU-REVISTA"])
-                print("Autores:")
-                print(article["AUTORES"])
-                print("--------------------------")
-
-        else:
-                print("--------- ARTIGO ---------")
-                print("Titulo:", articles["DADOS-BASICOS-DO-ARTIGO"]["@TITULO-DO-ARTIGO"])
-                print("Ano:", articles["DADOS-BASICOS-DO-ARTIGO"]["@ANO-DO-ARTIGO"])
-                print("Idioma:", articles["DADOS-BASICOS-DO-ARTIGO"]["@IDIOMA"])
-                print("Natureza:", articles["DADOS-BASICOS-DO-ARTIGO"]["@NATUREZA"])
-                print("DOI:", articles["DADOS-BASICOS-DO-ARTIGO"]["@DOI"])
-                print("Periodico:", articles["DETALHAMENTO-DO-ARTIGO"]["@TITULO-DO-PERIODICO-OU-REVISTA"])
-                print("Autores:")
-                print(article["AUTORES"])
-                print("--------------------------")
 
 def etree_extraction():
     global cur
@@ -73,85 +31,113 @@ def etree_extraction():
 
     for (id, created, updated, payload, status) in cur:
         SQL_DATA = {
-            "author_id": 0
+            "author_id": 0,
+            "article_id": 0
         }
 
-        doc = ET.fromstring(payload)
+        doc = ET.fromstring(payload, ET.XMLParser(encoding='ISO-8859-1'))
         full_name = doc.find("./DADOS-GERAIS").attrib["NOME-COMPLETO"]
         cv_description = doc.find("./DADOS-GERAIS/RESUMO-CV").attrib["TEXTO-RESUMO-CV-RH"]
         articles = doc.find("./PRODUCAO-BIBLIOGRAFICA/ARTIGOS-PUBLICADOS").findall("ARTIGO-PUBLICADO")
         supervisions = doc.find("./OUTRA-PRODUCAO/ORIENTACOES-CONCLUIDAS")
 
-        print(f"Autor: {full_name}")
-        print(f"Resumo CV: {cv_description}")
+        # print(f"Autor: {full_name}")
+        # print(f"Resumo CV: {cv_description}")
         
         tuple_author = (full_name, cv_description, 1)
         newcur = conn.cursor(buffered=True)
         newcur.execute(SQL_INSERTS["insert_author"], tuple_author)
         conn.commit()
-        SQL_DATA["author_id"] = cur.lastrowid
+        SQL_DATA["author_id"] = newcur.lastrowid
+        # print("id do autor:", SQL_DATA["author_id"])
 
         for article in articles:
+            MAX_TITLE_LENGTH = 200
             basic_data_tag = article.find("./DADOS-BASICOS-DO-ARTIGO")
             details_tag = article.find("./DETALHAMENTO-DO-ARTIGO")
+
+            title = basic_data_tag.attrib["TITULO-DO-ARTIGO"]
+            title = title[:MAX_TITLE_LENGTH] if len(title) > MAX_TITLE_LENGTH else title
+            year = basic_data_tag.attrib["ANO-DO-ARTIGO"]
+            language = basic_data_tag.attrib["IDIOMA"]
+            article_type = basic_data_tag.attrib["NATUREZA"]
+            doi = basic_data_tag.attrib["DOI"]
+            # periodical = details_tag.attrib["TITULO-DO-PERIODICO-OU-REVISTA"]
+            issn = details_tag.attrib["ISSN"]
+            if issn.find("-") == -1:
+                issn = issn[:4] + "-" + issn[4:]
             authors = article.findall("AUTORES")
-            print("--------- ARTIGO ---------")
-            print("Titulo:", basic_data_tag.attrib["TITULO-DO-ARTIGO"])
-            print("Ano:", basic_data_tag.attrib["ANO-DO-ARTIGO"])
-            print("Idioma:", basic_data_tag.attrib["IDIOMA"])
-            print("Natureza:", basic_data_tag.attrib["NATUREZA"])
-            print("DOI:", basic_data_tag.attrib["DOI"])
-            print("Periodico:", details_tag.attrib["TITULO-DO-PERIODICO-OU-REVISTA"])
-            print("Autores: ", [author.attrib["NOME-COMPLETO-DO-AUTOR"] for author in authors])
-            print("--------------------------")
-        
+
+            # print("--------- ARTIGO ---------")
+            # print("Titulo:", title)
+            # print("Tamanho do titulo: ", len(title))
+            # print("Ano:", year)
+            # print("Idioma:", language)
+            # print("Natureza:", article_type)
+            # print("DOI:", doi)
+            # print("Periodico:", periodical)
+            # print("ISSN do periodico:", issn)
+            # print("Autores: ", [author.attrib["NOME-COMPLETO-DO-AUTOR"] for author in authors])
+            # print("--------------------------")
+            tuple_article = (basic_data_tag.attrib["NATUREZA"], )
+
+            tuple_article = (article_type, title, year, language, doi, issn, None)
+
+            newcur.execute(SQL_INSERTS["insert_article"], tuple_article)
+            conn.commit()
+
+            SQL_DATA["article_id"] = newcur.lastrowid
+            newcur.execute(SQL_INSERTS["insert_author_article"], (SQL_DATA["author_id"], SQL_DATA["article_id"])) 
+            conn.commit()
+
         if supervisions:
             MASTERS_SUP = "ORIENTACOES-CONCLUIDAS-PARA-MESTRADO"
             PHD_SUP = "ORIENTACOES-CONCLUIDAS-PARA-DOUTORADO"
             OTHER_SUP = "OUTRAS-ORIENTACOES-CONCLUIDAS"
-            CESAR_ID = "091400000001"
+            # CESAR_ID = "091400000001"
 
             for supervision in supervisions:
                 if supervision.tag == MASTERS_SUP:
                     basic_data_tag = supervision.find("./DADOS-BASICOS-DE-" + MASTERS_SUP)
                     details_tag = supervision.find("./DETALHAMENTO-DE-" + MASTERS_SUP)
-                    print("--------- ORIENTAÇÃO DE MESTRADO ---------")
+                    # print("--------- ORIENTAÇÃO DE MESTRADO ---------")
 
                 elif supervision.tag == PHD_SUP:
                     basic_data_tag = supervision.find("./DADOS-BASICOS-DE-" + PHD_SUP)
                     details_tag = supervision.find("./DETALHAMENTO-DE-" + PHD_SUP)
-                    print("--------- ORIENTAÇÃO DE DOUTORADO ---------")
+                    # print("--------- ORIENTAÇÃO DE DOUTORADO ---------")
 
                 elif supervision.tag == OTHER_SUP:
                     basic_data_tag = supervision.find("./DADOS-BASICOS-DE-" + OTHER_SUP)
                     details_tag = supervision.find("./DETALHAMENTO-DE-" + OTHER_SUP)
-                    print("--------- OUTRA ORIENTAÇÃO ---------")
+                    # print("--------- OUTRA ORIENTAÇÃO ---------")
                 
                 sup_title = basic_data_tag.attrib["TITULO"]
+                sup_title = sup_title[:MAX_TITLE_LENGTH] if len(sup_title) > MAX_TITLE_LENGTH else sup_title
                 sup_year = basic_data_tag.attrib["ANO"]
                 sup_type = basic_data_tag.attrib["NATUREZA"]
-                student = details_tag.attrib["NOME-DO-ORIENTADO"]
+                # student = details_tag.attrib["NOME-DO-ORIENTADO"]
                 institution = details_tag.attrib["NOME-DA-INSTITUICAO"]
-                
-                course = None
-                if details_tag.attrib["CODIGO-INSTITUICAO"] == CESAR_ID:
-                    course = details_tag.attrib["NOME-DO-CURSO"]
 
+                course = details_tag.attrib["NOME-DO-CURSO"]
 
+                # print("Titulo:", sup_title)
+                # print("Ano:", sup_year)
+                # print("Natureza:", sup_type)
+                # print("Orientado:", student)
+                # print("Instituição:", institution)
+                # print("Curso:", course)
 
-                print("Titulo:", sup_title)
-                print("Ano:", sup_year)
-                print("Natureza:", sup_type)
-                print("Orientado:", student)
-                print("Instituição:", institution)
-                if course:
-                    print("Curso da CESAR School:", course)
+                supervision_tuple = (sup_title, sup_year, sup_type, course, institution, SQL_DATA["author_id"])
+                newcur.execute(SQL_INSERTS["insert_supervision"], supervision_tuple) 
+                conn.commit()
 
-                print("--------------------------")
+                # print("--------------------------")
 
 
 
 etree_extraction()
+print("[DEBUG] Finished executing downloader.py statements")
 
 cur.close()
 conn.close()

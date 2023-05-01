@@ -12,7 +12,7 @@ conn = mysql.connector.connect(
 cur = conn.cursor()
 
 def exec_sql_file(cursor, sql_file):
-    print("\n[INFO] Executing SQL script file: '%s'" % (sql_file))
+    # print("\n[INFO] Executing SQL script file: '%s'" % (sql_file))
     statement = ""
 
     for line in open(sql_file):
@@ -33,5 +33,6 @@ def exec_sql_file(cursor, sql_file):
 
 exec_sql_file(cur, "ddl.sql")
 conn.commit()
+print("[DEBUG] Finished executing ddl_script.py statements")
 cur.close()
 conn.close()

@@ -7,6 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY ./scripts/* .
 ADD ./curriculos ./curriculos
-RUN chmod 777 ./startup_script.sh
+RUN chmod 777 ./startup_script.sh && ln -s /usr/src/app/startup_script.sh /
 
-ENTRYPOINT [ "./startup_script.sh" ]
+ENTRYPOINT ["/startup_script.sh" ]

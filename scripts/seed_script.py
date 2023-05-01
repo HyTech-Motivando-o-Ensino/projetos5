@@ -21,7 +21,7 @@ def exec_sql_file(cursor, sql_file):
             statement = statement + line
         else:  
             statement = statement + line
-            print("[DEBUG] Executing SQL statement:", statement)
+            # print("[DEBUG] Executing SQL statement:", statement)
             try:
                 cursor.execute(statement)
             except Exception as e:
@@ -32,5 +32,6 @@ def exec_sql_file(cursor, sql_file):
 
 exec_sql_file(cur, "seed.sql")
 conn.commit()
+print("[DEBUG] Finished executing seed_script.py statements")
 cur.close()
 conn.close()
