@@ -3,7 +3,8 @@ import os
 from xml.etree import ElementTree as ET
 
 conn = mysql.connector.connect(
-    host="localhost",
+    # host="localhost",
+    host="db",
     user="root",
     password="password",
     database="pj5data"
@@ -12,10 +13,16 @@ conn = mysql.connector.connect(
 cur = conn.cursor()
 
 try:
-    for file in os.listdir("../curriculos"):
-        tree = ET.parse(f"../curriculos/{file}")
-        xml_string = ET.tostring(tree.getroot(), encoding='unicode')
-        print(xml_string)
+    # for file in os.listdir("../curriculos"):
+    for file in os.listdir("./curriculos"):
+        # tree = ET.parse(f"../curriculos/{file}")
+        # tree = ET.parse(f"./curriculos/{file}")
+        with open(f"./curriculos/{file}", "rb") as f:
+            root = ET.fromstring(f.read())
+            tree = ET.ElementTree(root)
+
+        xml_string = ET.tostring(tree.getroot(), encoding='utf-8')
+        # print("[DEBUG]", xml_string)
 
         query = "INSERT INTO arquivos_xml (payload, status_extracao) VALUES (%s, %s)"
         values = (xml_string, 0)
@@ -23,9 +30,11 @@ try:
         cur.execute(query, values)
 
     conn.commit()
-except:
+except Exception as e:
+    print(e)
     conn.rollback()
 finally:
+    print("[DEBUG] Finished executing downloader.py statements")
     cur.close()
     conn.close()
 

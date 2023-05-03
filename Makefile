@@ -1,5 +1,15 @@
-run-dev:
-	docker-compose up --build -d
+up:
+	docker-compose up --build
 
-create-tables:
-	docker exec mysql_db /bin/sh -c 'mysql -u user -ppassword < ddl.sql'
+down:
+	docker-compose down
+
+down-reset:
+	docker-compose down -v
+
+stop:
+	docker-compose stop
+
+reset-db:
+	docker volume rm projetos5_db_created
+	docker volume rm projetos5_mysqldata

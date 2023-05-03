@@ -7,5 +7,6 @@ ENV MYSQL_PASSWORD password
 
 # COPY ddl.sql /docker-entrypoint-initdb.d/
 COPY scripts/ddl.sql ./
+COPY scripts/seed.sql ./
 
 EXPOSE 3306
