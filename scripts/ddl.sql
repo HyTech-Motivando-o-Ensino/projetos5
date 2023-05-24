@@ -54,7 +54,6 @@ CREATE TABLE IF NOT EXISTS orientacoes (
     curso VARCHAR(200),
     instituicao VARCHAR(200),
     orientador_id INTEGER,
-    sequencia_producao INTEGER,
     PRIMARY KEY (id)
 );
 

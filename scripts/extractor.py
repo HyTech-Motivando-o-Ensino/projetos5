@@ -1,6 +1,7 @@
-import xmltodict
 import mysql.connector
 from xml.etree import ElementTree as ET
+from Levenshtein import distance
+from typing import List, Dict, Tuple
 
 conn = mysql.connector.connect(
     # host="localhost",
@@ -17,12 +18,17 @@ SQL_INSERTS = {
     "insert_author": "INSERT INTO autores (nome_completo, resumo_cv, colaborador_cesar) VALUES (%s, %s, %s)",
     "insert_article": "INSERT INTO artigos (natureza, titulo, ano, idioma, doi, periodico_revista_issn, pdf_file, sequencia_producao) VALUES(%s, %s, %s, %s, %s, %s, %s, %s);",
     "insert_author_article": "INSERT INTO autores_artigos (autor_id, artigo_id) VALUES(%s, %s)",
-    "insert_supervision": "INSERT INTO orientacoes (titulo, ano, natureza, curso, instituicao, orientador_id, sequencia_producao) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+    "insert_supervision": "INSERT INTO orientacoes (titulo, ano, natureza, curso, instituicao, orientador_id) VALUES (%s, %s, %s, %s, %s, %s)",
 }
 
 def etree_extraction():
     global cur
     global conn
+    # add articles already in the database
+    ALL_ARTICLES: Dict[int, List[Tuple[int, int, str]]] = {}
+    # add supervisions already in the database
+    ALL_SUPERVISIONS: Dict[int, List[Tuple[int, str]]] = {}
+
     query = '''
     SELECT * FROM arquivos_xml t
     WHERE t.status_extracao = 0'''
@@ -33,7 +39,8 @@ def etree_extraction():
         SQL_DATA = {
             "arquivo_id": id,
             "author_id": 0,
-            "article_id": 0
+            "article_id": 0,
+            "supervision_id": 0,
         }
 
         doc = ET.fromstring(payload, ET.XMLParser(encoding='ISO-8859-1'))
@@ -42,7 +49,7 @@ def etree_extraction():
         articles = doc.find("./PRODUCAO-BIBLIOGRAFICA/ARTIGOS-PUBLICADOS").findall("ARTIGO-PUBLICADO")
         supervisions = doc.find("./OUTRA-PRODUCAO/ORIENTACOES-CONCLUIDAS")
 
-        # print(f"Autor: {full_name}")
+        print(f"[DEBUG] Autor: {full_name}")
         # print(f"Resumo CV: {cv_description}")
         
         tuple_author = (full_name, cv_description, 1)
@@ -85,12 +92,42 @@ def etree_extraction():
 
             tuple_article = (article_type, title, year, language, doi, issn, None, production_sequence)
 
-            newcur.execute(SQL_INSERTS["insert_article"], tuple_article)
-            conn.commit()
+            if not is_production_sequence_in(ALL_ARTICLES, production_sequence, year):
 
-            SQL_DATA["article_id"] = newcur.lastrowid
-            newcur.execute(SQL_INSERTS["insert_author_article"], (SQL_DATA["author_id"], SQL_DATA["article_id"])) 
-            conn.commit()
+                if year not in ALL_ARTICLES:
+                    ALL_ARTICLES[year] = []
+
+                    newcur.execute(SQL_INSERTS["insert_article"], tuple_article)
+                    conn.commit()
+
+                    SQL_DATA["article_id"] = newcur.lastrowid
+                    ALL_ARTICLES[year].append((SQL_DATA["article_id"], production_sequence, title))
+
+                    newcur.execute(SQL_INSERTS["insert_author_article"], (SQL_DATA["author_id"], SQL_DATA["article_id"])) 
+                    conn.commit()
+                else:
+                    duplicate = False
+                    for article_id, prod_seq, article_title in ALL_ARTICLES[year]:
+                        # Levenshtein
+                        edit_distance = distance(title, article_title, processor=lambda s: s.strip().lower())
+                        # Duplicate article
+                        if edit_distance <= 5 and not duplicate:
+                            print(f"[DEBUG] Duplicate article found: {title}")
+                            newcur.execute(SQL_INSERTS["insert_author_article"], (SQL_DATA["author_id"], article_id)) 
+                            conn.commit()
+                            duplicate = True
+
+                    if not duplicate:
+                        newcur.execute(SQL_INSERTS["insert_article"], tuple_article)
+                        conn.commit()
+
+                        SQL_DATA["article_id"] = newcur.lastrowid
+                        ALL_ARTICLES[year].append((SQL_DATA["article_id"], production_sequence, title))
+
+                        newcur.execute(SQL_INSERTS["insert_author_article"], (SQL_DATA["author_id"], SQL_DATA["article_id"])) 
+                        conn.commit()
+            else:
+                print(f"[DEBUG] Production sequence {production_sequence} already on articles list")
 
         if supervisions:
             MASTERS_SUP = "ORIENTACOES-CONCLUIDAS-PARA-MESTRADO"
@@ -114,7 +151,6 @@ def etree_extraction():
                     details_tag = supervision.find("./DETALHAMENTO-DE-" + OTHER_SUP)
                     # print("--------- OUTRA ORIENTAÇÃO ---------")
                 
-                sup_production_sequence = supervision.attrib["SEQUENCIA-PRODUCAO"]
                 sup_title = basic_data_tag.attrib["TITULO"]
                 sup_title = sup_title[:MAX_TITLE_LENGTH] if len(sup_title) > MAX_TITLE_LENGTH else sup_title
                 sup_year = basic_data_tag.attrib["ANO"]
@@ -131,9 +167,37 @@ def etree_extraction():
                 # print("Instituição:", institution)
                 # print("Curso:", course)
 
-                supervision_tuple = (sup_title, sup_year, sup_type, course, institution, SQL_DATA["author_id"], sup_production_sequence)
+                supervision_tuple = (sup_title, sup_year, sup_type, course, institution, SQL_DATA["author_id"])
+
                 newcur.execute(SQL_INSERTS["insert_supervision"], supervision_tuple) 
-                conn.commit()
+
+                if sup_year not in ALL_SUPERVISIONS:
+                    ALL_SUPERVISIONS[sup_year] = []
+
+                    newcur.execute(SQL_INSERTS["insert_supervision"], supervision_tuple)
+                    conn.commit()
+
+                    SQL_DATA["supervision_id"] = newcur.lastrowid
+                    ALL_SUPERVISIONS[sup_year].append((SQL_DATA["supervision_id"], sup_title))
+
+                else:
+                    duplicate = False
+                    for supervision_id, supervision_title in ALL_SUPERVISIONS[sup_year]:
+                        if (sup_title == supervision_title or
+                            sup_title in supervision_title or
+                            supervision_title in sup_title):
+                            print("[DEBUG] supervision already in database")
+                            print(f"[DEBUG] current supervision: {sup_title}")
+                            print(f"[DEBUG] supervision in database: {supervision_title} | id {supervision_id}")
+                            print("------------------------------------------------")
+                            duplicate = True
+
+                    if not duplicate:
+                        newcur.execute(SQL_INSERTS["insert_supervision"], supervision_tuple)
+                        conn.commit()
+
+                        SQL_DATA["supervision_id"] = newcur.lastrowid
+                        ALL_SUPERVISIONS[sup_year].append((SQL_DATA["supervision_id"], title))
 
                 # print("--------------------------")
 
@@ -141,6 +205,17 @@ def etree_extraction():
         newcur.execute(query, (1, SQL_DATA["arquivo_id"]))
         conn.commit()
 
+def is_production_sequence_in(grouped_productions: Dict[int, List[Tuple[int, int, str]]],
+    production_sequence: int,
+    year: int) -> bool:
+    prod_keys = list(grouped_productions.keys())
+
+    if len(prod_keys) > 0 and year in prod_keys:
+        for _, prod_seq, _ in grouped_productions[year]:
+            if prod_seq == production_sequence:
+                return True
+
+    return False
 
 etree_extraction()
 print("[DEBUG] Finished executing extractor.py statements")
