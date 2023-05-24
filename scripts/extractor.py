@@ -15,9 +15,9 @@ cur = conn.cursor(buffered=True)
 
 SQL_INSERTS = {
     "insert_author": "INSERT INTO autores (nome_completo, resumo_cv, colaborador_cesar) VALUES (%s, %s, %s)",
-    "insert_article": "INSERT INTO artigos (natureza, titulo, ano, idioma, doi, periodico_revista_issn, pdf_file) VALUES(%s, %s, %s, %s, %s, %s, %s);",
+    "insert_article": "INSERT INTO artigos (natureza, titulo, ano, idioma, doi, periodico_revista_issn, pdf_file, sequencia_producao) VALUES(%s, %s, %s, %s, %s, %s, %s, %s);",
     "insert_author_article": "INSERT INTO autores_artigos (autor_id, artigo_id) VALUES(%s, %s)",
-    "insert_supervision": "INSERT INTO orientacoes (titulo, ano, natureza, curso, instituicao, orientador_id) VALUES (%s, %s, %s, %s, %s, %s)",
+    "insert_supervision": "INSERT INTO orientacoes (titulo, ano, natureza, curso, instituicao, orientador_id, sequencia_producao) VALUES (%s, %s, %s, %s, %s, %s, %s)",
 }
 
 def etree_extraction():
@@ -54,6 +54,7 @@ def etree_extraction():
 
         for article in articles:
             MAX_TITLE_LENGTH = 200
+            production_sequence = article.attrib["SEQUENCIA-PRODUCAO"]
             basic_data_tag = article.find("./DADOS-BASICOS-DO-ARTIGO")
             details_tag = article.find("./DETALHAMENTO-DO-ARTIGO")
 
@@ -65,10 +66,11 @@ def etree_extraction():
             doi = basic_data_tag.attrib["DOI"]
             # periodical = details_tag.attrib["TITULO-DO-PERIODICO-OU-REVISTA"]
             issn = details_tag.attrib["ISSN"]
-            if issn.find("-") == -1:
-                issn = issn[:4] + "-" + issn[4:]
-            authors = article.findall("AUTORES")
+            dash_pos = issn.find("-")
+            if dash_pos != -1:
+                issn = issn[:dash_pos] + issn[dash_pos + 1:]
 
+            # authors = article.findall("AUTORES")
             # print("--------- ARTIGO ---------")
             # print("Titulo:", title)
             # print("Tamanho do titulo: ", len(title))
@@ -80,9 +82,8 @@ def etree_extraction():
             # print("ISSN do periodico:", issn)
             # print("Autores: ", [author.attrib["NOME-COMPLETO-DO-AUTOR"] for author in authors])
             # print("--------------------------")
-            tuple_article = (basic_data_tag.attrib["NATUREZA"], )
 
-            tuple_article = (article_type, title, year, language, doi, issn, None)
+            tuple_article = (article_type, title, year, language, doi, issn, None, production_sequence)
 
             newcur.execute(SQL_INSERTS["insert_article"], tuple_article)
             conn.commit()
@@ -113,6 +114,7 @@ def etree_extraction():
                     details_tag = supervision.find("./DETALHAMENTO-DE-" + OTHER_SUP)
                     # print("--------- OUTRA ORIENTAÇÃO ---------")
                 
+                sup_production_sequence = supervision.attrib["SEQUENCIA-PRODUCAO"]
                 sup_title = basic_data_tag.attrib["TITULO"]
                 sup_title = sup_title[:MAX_TITLE_LENGTH] if len(sup_title) > MAX_TITLE_LENGTH else sup_title
                 sup_year = basic_data_tag.attrib["ANO"]
@@ -129,7 +131,7 @@ def etree_extraction():
                 # print("Instituição:", institution)
                 # print("Curso:", course)
 
-                supervision_tuple = (sup_title, sup_year, sup_type, course, institution, SQL_DATA["author_id"])
+                supervision_tuple = (sup_title, sup_year, sup_type, course, institution, SQL_DATA["author_id"], sup_production_sequence)
                 newcur.execute(SQL_INSERTS["insert_supervision"], supervision_tuple) 
                 conn.commit()
 

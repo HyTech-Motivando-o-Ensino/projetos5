@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS artigos (
     idioma VARCHAR(100),
     doi VARCHAR(100),
     periodico_revista_issn VARCHAR(100),
+    sequencia_producao INTEGER,
     pdf_file VARCHAR(100),
     PRIMARY KEY (id)
 );
@@ -53,6 +54,7 @@ CREATE TABLE IF NOT EXISTS orientacoes (
     curso VARCHAR(200),
     instituicao VARCHAR(200),
     orientador_id INTEGER,
+    sequencia_producao INTEGER,
     PRIMARY KEY (id)
 );
 
