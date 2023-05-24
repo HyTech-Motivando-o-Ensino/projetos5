@@ -50,7 +50,6 @@ CREATE TABLE IF NOT EXISTS orientacoes (
     titulo VARCHAR(500),
     ano INTEGER,
     natureza VARCHAR(100),
-    -- curso_id INTEGER,
     curso VARCHAR(200),
     instituicao VARCHAR(200),
     orientador_id INTEGER,
