@@ -1,4 +1,4 @@
-up:
+run:
 	docker-compose up --build
 
 down:
@@ -13,3 +13,9 @@ stop:
 reset-db:
 	docker volume rm projetos5_db_created
 	docker volume rm projetos5_mysqldata
+
+makemigrations:
+	docker exec api python manage.py makemigrations
+
+migrate:
+	docker exec api python manage.py migrate
