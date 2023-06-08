@@ -1,2 +1,4 @@
 from .author_serializer import AuthorSerializer
 from .article_serializer import *
+from .dashboard_serializer import DashboardSerializer
+from .article_per_year_serializer import ArticlePerYearSerializer
