@@ -2,6 +2,7 @@ import mysql.connector
 from xml.etree import ElementTree as ET
 from Levenshtein import distance
 from typing import List, Dict, Tuple
+from datetime import datetime
 
 conn = mysql.connector.connect(
     # host="localhost",
@@ -15,7 +16,7 @@ conn = mysql.connector.connect(
 cur = conn.cursor(buffered=True)
 
 SQL_INSERTS = {
-    "insert_author": "INSERT INTO autores (nome_completo, resumo_cv, colaborador_cesar) VALUES (%s, %s, %s)",
+    "insert_author": "INSERT INTO autores (created_at, updated_at, nome_completo, resumo_cv, colaborador_cesar) VALUES (%s, %s, %s, %s, %s)",
     "insert_article": "INSERT INTO artigos (natureza, titulo, ano, idioma, doi, periodico_revista_issn, pdf_file, sequencia_producao) VALUES(%s, %s, %s, %s, %s, %s, %s, %s);",
     "insert_author_article": "INSERT INTO autores_artigos (autor_id, artigo_id) VALUES(%s, %s)",
     "insert_supervision": "INSERT INTO orientacoes (titulo, ano, natureza, curso, instituicao, orientador_id) VALUES (%s, %s, %s, %s, %s, %s)",
@@ -51,8 +52,9 @@ def etree_extraction():
 
         print(f"[DEBUG] Autor: {full_name}")
         # print(f"Resumo CV: {cv_description}")
-        
-        tuple_author = (full_name, cv_description, 1)
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        tuple_author = (now, now, full_name, cv_description, 1)
         newcur = conn.cursor(buffered=True)
         newcur.execute(SQL_INSERTS["insert_author"], tuple_author)
         conn.commit()
@@ -201,8 +203,9 @@ def etree_extraction():
 
                 # print("--------------------------")
 
-        query = "UPDATE arquivos_xml t SET status_extracao = %s WHERE t.id = %s"
-        newcur.execute(query, (1, SQL_DATA["arquivo_id"]))
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        query = "UPDATE arquivos_xml t SET updated_at = %s, status_extracao = %s WHERE t.id = %s"
+        newcur.execute(query, (now, 1, SQL_DATA["arquivo_id"]))
         conn.commit()
 
 def is_production_sequence_in(grouped_productions: Dict[int, List[Tuple[int, int, str]]],

@@ -10,10 +10,6 @@ down-reset:
 stop:
 	docker-compose stop
 
-reset-db:
-	docker volume rm projetos5_db_created
-	docker volume rm projetos5_mysqldata
-
 makemigrations:
 	docker exec api python manage.py makemigrations
 

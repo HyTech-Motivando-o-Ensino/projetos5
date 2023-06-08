@@ -110,6 +110,10 @@ ALTER TABLE orientacao_area_conhecimento ADD CONSTRAINT FK_orienacao_area_conhec
     FOREIGN KEY (area_conhecimento_id)
     REFERENCES grande_area_conhecimento (id);
 
+ALTER TABLE orientacao_area_conhecimento ADD CONSTRAINT FK_orienacao_area_conhecimento_orientacao
+    FOREIGN KEY (orientacao_id)
+    REFERENCES orientacoes (id);
+
 ALTER TABLE autores_area_conhecimento ADD CONSTRAINT FK_autores_area_conhecimento_autores
  FOREIGN KEY(autor_id) 
  REFERENCES autores(id);
