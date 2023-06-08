@@ -1,16 +1,16 @@
 USE pj5data;
 
-INSERT INTO grande_area_conhecimento(nome)
-VALUES ("CIENCIAS_EXATAS_E_DA_TERRA"),
-       ("CIENCIAS_BIOLOGICAS"),
-       ("ENGENHARIAS"),
-       ("CIENCIAS_DA_SAUDE"),
-       ("CIENCIAS_AGRARIAS"),
-       ("CIENCIAS_SOCIAIS_APLICADAS"),
-       ("CIENCIAS_HUMANAS"),
-       ("CIENCIAS_SOCIAIS_APLICADAS"),
-       ("LINGUISTICA_LETRAS_E_ARTES"),
-       ("OUTRA");
+INSERT INTO grande_area_conhecimento(nome, nome_formatado)
+VALUES ("CIENCIAS_EXATAS_E_DA_TERRA", "Ciências Exatas e da Terra"),
+       ("CIENCIAS_BIOLOGICAS", "Ciências Biológicas"),
+       ("ENGENHARIAS", "Engenharias"),
+       ("CIENCIAS_DA_SAUDE", "Ciências da Saúde"),
+       ("CIENCIAS_AGRARIAS", "Ciências Agrárias"),
+       ("CIENCIAS_SOCIAIS_APLICADAS", "Ciências Sociais Aplicadas"),
+       ("CIENCIAS_HUMANAS", "Ciências Humanas"),
+       ("LINGUISTICA_LETRAS_E_ARTES", "Linguística, Letras e Artes"),
+       ("OUTRA", "Outra"),
+       ("NAO_INFORMADA", "Não Informada");
 
 INSERT INTO periodicos_revistas(issn, nome, estrato)
 VALUES ("23169451", "ABAKÓS",	"A4"),

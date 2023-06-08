@@ -20,6 +20,7 @@ SQL_INSERTS = {
     "insert_article": "INSERT INTO artigos (natureza, titulo, ano, idioma, doi, periodico_revista_issn, pdf_file, sequencia_producao) VALUES(%s, %s, %s, %s, %s, %s, %s, %s);",
     "insert_author_article": "INSERT INTO autores_artigos (autor_id, artigo_id) VALUES(%s, %s)",
     "insert_supervision": "INSERT INTO orientacoes (titulo, ano, natureza, curso, instituicao, orientador_id) VALUES (%s, %s, %s, %s, %s, %s)",
+    "insert_article_knowledge_field": "INSERT INTO artigo_area_conhecimento (area_conhecimento_id, artigo_id) VALUES (%s, %s)"
 }
 
 def etree_extraction():
@@ -29,6 +30,22 @@ def etree_extraction():
     ALL_ARTICLES: Dict[int, List[Tuple[int, int, str]]] = {}
     # add supervisions already in the database
     ALL_SUPERVISIONS: Dict[int, List[Tuple[int, str]]] = {}
+
+    knowledge_fields_query = '''
+    SELECT * FROM grande_area_conhecimento
+    '''
+
+    cur.execute(knowledge_fields_query)
+    # [(id, nome, nome_formatado)]
+    knowledge_fields = cur.fetchall()
+    knowledge_fields_by_name = {}
+    # {"CIENCIAS_HUMANAS": 1, "CIENCIAS_SOCIAIS_APLICADAS" 2, ...}
+    for field in knowledge_fields:
+        id = field[0]
+        name = field[1]
+        knowledge_fields_by_name[name] = id
+
+    print(f"[DEBUG] Areas do conhecimento: {knowledge_fields_by_name}")
 
     query = '''
     SELECT * FROM arquivos_xml t
@@ -66,6 +83,7 @@ def etree_extraction():
             production_sequence = article.attrib["SEQUENCIA-PRODUCAO"]
             basic_data_tag = article.find("./DADOS-BASICOS-DO-ARTIGO")
             details_tag = article.find("./DETALHAMENTO-DO-ARTIGO")
+            knowledge_fields_tag = article.find("./AREAS-DO-CONHECIMENTO")
 
             title = basic_data_tag.attrib["TITULO-DO-ARTIGO"]
             title = title[:MAX_TITLE_LENGTH] if len(title) > MAX_TITLE_LENGTH else title
@@ -73,11 +91,18 @@ def etree_extraction():
             language = basic_data_tag.attrib["IDIOMA"]
             article_type = basic_data_tag.attrib["NATUREZA"]
             doi = basic_data_tag.attrib["DOI"]
-            # periodical = details_tag.attrib["TITULO-DO-PERIODICO-OU-REVISTA"]
             issn = details_tag.attrib["ISSN"]
             dash_pos = issn.find("-")
             if dash_pos != -1:
                 issn = issn[:dash_pos] + issn[dash_pos + 1:]
+            
+            article_knowledge_fields = []
+            if knowledge_fields_tag:
+                for tag in knowledge_fields_tag:
+                    knowledge_field_name = tag.attrib["NOME-GRANDE-AREA-DO-CONHECIMENTO"]
+                    if knowledge_field_name:
+                        article_knowledge_fields.append(knowledge_field_name)
+            print(f"[DEBUG] Areas do conhecimento do artigo: {article_knowledge_fields}")
 
             # authors = article.findall("AUTORES")
             # print("--------- ARTIGO ---------")
@@ -105,6 +130,20 @@ def etree_extraction():
                     SQL_DATA["article_id"] = newcur.lastrowid
                     ALL_ARTICLES[year].append((SQL_DATA["article_id"], production_sequence, title))
 
+                    article_knowledge_field_tuples = set()
+                    for knowledge_field_name in article_knowledge_fields:
+                        if knowledge_field_name in knowledge_fields_by_name:
+                            article_knowledge_field_tuples.add(
+                                (knowledge_fields_by_name[knowledge_field_name], SQL_DATA["article_id"]))
+
+                    if len(article_knowledge_field_tuples) == 0:
+                        article_knowledge_field_tuples.add((knowledge_fields_by_name["NAO_INFORMADA"], SQL_DATA["article_id"]))
+                    
+                    print(f"[DEBUG] artigos_area_conhecimento: {article_knowledge_field_tuples}")
+
+                    newcur.executemany(SQL_INSERTS["insert_article_knowledge_field"], list(article_knowledge_field_tuples))
+                    conn.commit()
+
                     newcur.execute(SQL_INSERTS["insert_author_article"], (SQL_DATA["author_id"], SQL_DATA["article_id"])) 
                     conn.commit()
                 else:
@@ -125,6 +164,20 @@ def etree_extraction():
 
                         SQL_DATA["article_id"] = newcur.lastrowid
                         ALL_ARTICLES[year].append((SQL_DATA["article_id"], production_sequence, title))
+
+                        article_knowledge_field_tuples = set()
+                        for knowledge_field_name in article_knowledge_fields:
+                            if knowledge_field_name in knowledge_fields_by_name:
+                                article_knowledge_field_tuples.add(
+                                    (knowledge_fields_by_name[knowledge_field_name], SQL_DATA["article_id"]))
+
+                        if len(article_knowledge_field_tuples) == 0:
+                            article_knowledge_field_tuples.add((knowledge_fields_by_name["NAO_INFORMADA"], SQL_DATA["article_id"]))
+
+                        print(f"[DEBUG] artigos_area_conhecimento: {article_knowledge_field_tuples}")
+
+                        newcur.executemany(SQL_INSERTS["insert_article_knowledge_field"], list(article_knowledge_field_tuples))
+                        conn.commit()
 
                         newcur.execute(SQL_INSERTS["insert_author_article"], (SQL_DATA["author_id"], SQL_DATA["article_id"])) 
                         conn.commit()

@@ -30,6 +30,7 @@ class Artigo(models.Model):
 
 class GrandeAreaConhecimento(models.Model):
     nome = models.CharField(max_length=255, blank=True, null=True)
+    nome_formatado = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
         managed = True
