@@ -64,8 +64,14 @@ def etree_extraction():
         doc = ET.fromstring(payload, ET.XMLParser(encoding='ISO-8859-1'))
         full_name = doc.find("./DADOS-GERAIS").attrib["NOME-COMPLETO"]
         cv_description = doc.find("./DADOS-GERAIS/RESUMO-CV").attrib["TEXTO-RESUMO-CV-RH"]
-        articles = doc.find("./PRODUCAO-BIBLIOGRAFICA/ARTIGOS-PUBLICADOS").findall("ARTIGO-PUBLICADO")
-        supervisions = doc.find("./OUTRA-PRODUCAO/ORIENTACOES-CONCLUIDAS")
+        if doc.find("./PRODUCAO-BIBLIOGRAFICA/ARTIGOS-PUBLICADOS"):
+            articles = doc.find("./PRODUCAO-BIBLIOGRAFICA/ARTIGOS-PUBLICADOS").findall("ARTIGO-PUBLICADO")
+        else:
+            articles = []
+        if doc.find("./OUTRA-PRODUCAO/ORIENTACOES-CONCLUIDAS"):
+            supervisions = doc.find("./OUTRA-PRODUCAO/ORIENTACOES-CONCLUIDAS")
+        else:
+            supervisions = []
 
         print(f"[DEBUG] Autor: {full_name}")
         # print(f"Resumo CV: {cv_description}")
