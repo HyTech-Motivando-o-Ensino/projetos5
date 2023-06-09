@@ -45,7 +45,7 @@ def etree_extraction():
         name = field[1]
         knowledge_fields_by_name[name] = id
 
-    print(f"[DEBUG] Areas do conhecimento: {knowledge_fields_by_name}")
+    # print(f"[DEBUG] Areas do conhecimento: {knowledge_fields_by_name}")
 
     query = '''
     SELECT * FROM arquivos_xml t
@@ -108,7 +108,7 @@ def etree_extraction():
                     knowledge_field_name = tag.attrib["NOME-GRANDE-AREA-DO-CONHECIMENTO"]
                     if knowledge_field_name:
                         article_knowledge_fields.append(knowledge_field_name)
-            print(f"[DEBUG] Areas do conhecimento do artigo: {article_knowledge_fields}")
+            # print(f"[DEBUG] Areas do conhecimento do artigo: {article_knowledge_fields}")
 
             # authors = article.findall("AUTORES")
             # print("--------- ARTIGO ---------")
@@ -180,7 +180,7 @@ def etree_extraction():
                         if len(article_knowledge_field_tuples) == 0:
                             article_knowledge_field_tuples.add((knowledge_fields_by_name["NAO_INFORMADA"], SQL_DATA["article_id"]))
 
-                        print(f"[DEBUG] artigos_area_conhecimento: {article_knowledge_field_tuples}")
+                        # print(f"[DEBUG] artigos_area_conhecimento: {article_knowledge_field_tuples}")
 
                         newcur.executemany(SQL_INSERTS["insert_article_knowledge_field"], list(article_knowledge_field_tuples))
                         conn.commit()
@@ -229,8 +229,6 @@ def etree_extraction():
                 # print("Curso:", course)
 
                 supervision_tuple = (sup_title, sup_year, sup_type, course, institution, SQL_DATA["author_id"])
-
-                newcur.execute(SQL_INSERTS["insert_supervision"], supervision_tuple) 
 
                 if sup_year not in ALL_SUPERVISIONS:
                     ALL_SUPERVISIONS[sup_year] = []
