@@ -2,14 +2,14 @@ from django.db.models import Count
 from typing import List, Dict
 
 from core.models import Artigo
-from .journal_repository import JournalRepository
 
 class ArticleRepository():
-    def __init__(self):
-        self.__journal_repository = JournalRepository()
-
     def get_all(self):
         data = Artigo.objects.all()
+        return data
+    
+    def get_all_count(self, filter):
+        data = Artigo.objects.filter(filter).count()
         return data
     
     def get_by_year(self) -> List[Dict[str, str]]:
