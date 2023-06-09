@@ -21,7 +21,10 @@ class Artigo(models.Model):
     periodico_revista_issn = models.CharField(max_length=100, blank=True, null=True)
     sequencia_producao = models.IntegerField(blank=True, null=True)
     pdf_file = models.CharField(max_length=100, blank=True, null=True)
-    areas_conhecimento = models.ManyToManyField('GrandeAreaConhecimento', through='ArtigoAreaConhecimento')
+    areas_conhecimento = models.ManyToManyField(
+        'GrandeAreaConhecimento',
+        through='ArtigoAreaConhecimento',
+        related_name='artigos')
 
     class Meta:
         managed = True
@@ -53,8 +56,14 @@ class Autor(models.Model):
     nome_completo = models.CharField(max_length=255, blank=True, null=True)
     resumo_cv = models.TextField(blank=True, null=True)
     colaborador_cesar = models.IntegerField(blank=True, null=True)
-    areas_conhecimento = models.ManyToManyField('GrandeAreaConhecimento', through='AutorAreaConhecimento')
-    artigos = models.ManyToManyField('Artigo', through='AutorArtigo')
+    areas_conhecimento = models.ManyToManyField(
+        'GrandeAreaConhecimento',
+        through='AutorAreaConhecimento',
+        related_name='autores')
+    artigos = models.ManyToManyField(
+        'Artigo',
+        through='AutorArtigo',
+        related_name='autores')
 
     class Meta:
         managed = True
