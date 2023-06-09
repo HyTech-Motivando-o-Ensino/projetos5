@@ -216,7 +216,6 @@ def etree_extraction():
                 sup_title = sup_title[:MAX_TITLE_LENGTH] if len(sup_title) > MAX_TITLE_LENGTH else sup_title
                 sup_year = basic_data_tag.attrib["ANO"]
                 sup_type = basic_data_tag.attrib["NATUREZA"]
-                # student = details_tag.attrib["NOME-DO-ORIENTADO"]
                 institution = details_tag.attrib["NOME-DA-INSTITUICAO"]
 
                 course = details_tag.attrib["NOME-DO-CURSO"]
@@ -242,9 +241,7 @@ def etree_extraction():
                 else:
                     duplicate = False
                     for supervision_id, supervision_title in ALL_SUPERVISIONS[sup_year]:
-                        if (sup_title == supervision_title or
-                            sup_title in supervision_title or
-                            supervision_title in sup_title):
+                        if (sup_title == supervision_title):
                             print("[DEBUG] supervision already in database")
                             print(f"[DEBUG] current supervision: {sup_title}")
                             print(f"[DEBUG] supervision in database: {supervision_title} | id {supervision_id}")
@@ -256,7 +253,7 @@ def etree_extraction():
                         conn.commit()
 
                         SQL_DATA["supervision_id"] = newcur.lastrowid
-                        ALL_SUPERVISIONS[sup_year].append((SQL_DATA["supervision_id"], title))
+                        ALL_SUPERVISIONS[sup_year].append((SQL_DATA["supervision_id"], sup_title))
 
                 # print("--------------------------")
 
