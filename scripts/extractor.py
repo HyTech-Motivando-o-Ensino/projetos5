@@ -23,6 +23,15 @@ SQL_INSERTS = {
     "insert_article_knowledge_field": "INSERT INTO artigo_area_conhecimento (area_conhecimento_id, artigo_id) VALUES (%s, %s)"
 }
 
+SUPERVISION_TYPE_MAP = {
+    "graduacao": "trabalho_conclusao_graduacao",
+    "mestrado": "dissertacao_mestrado",
+    "doutorado": "tese_doutorado",
+    "cientifica": "trabalho_iniciacao_cientifica",
+    "monografia": "monografia_conclusao_curso_aperfeicoamento_especializacao",
+    "outra-natureza": "outra" 
+}
+
 def etree_extraction():
     global cur
     global conn
@@ -219,6 +228,11 @@ def etree_extraction():
                 institution = details_tag.attrib["NOME-DA-INSTITUICAO"]
 
                 course = details_tag.attrib["NOME-DO-CURSO"]
+
+                for type in SUPERVISION_TYPE_MAP:
+                    if type in sup_type.strip().lower():
+                        sup_type = SUPERVISION_TYPE_MAP[type]
+                        break
 
                 # print("Titulo:", sup_title)
                 # print("Ano:", sup_year)

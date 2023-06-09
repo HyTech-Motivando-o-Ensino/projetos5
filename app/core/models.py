@@ -103,7 +103,7 @@ class Orientacao(models.Model):
     natureza = models.CharField(max_length=100, blank=True, null=True)
     curso = models.CharField(max_length=200, blank=True, null=True)
     instituicao = models.CharField(max_length=200, blank=True, null=True)
-    orientador = models.ForeignKey(Autor, models.CASCADE, blank=True, null=True)
+    orientador = models.ForeignKey(Autor, models.CASCADE, blank=True, null=True, related_name='orientacoes')
 
     class Meta:
         managed = True
