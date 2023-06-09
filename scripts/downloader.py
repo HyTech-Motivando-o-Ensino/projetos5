@@ -1,6 +1,7 @@
 import mysql.connector
 import os
 from xml.etree import ElementTree as ET
+from datetime import datetime
 
 conn = mysql.connector.connect(
     # host="localhost",
@@ -24,8 +25,9 @@ try:
         xml_string = ET.tostring(tree.getroot(), encoding='utf-8')
         # print("[DEBUG]", xml_string)
 
-        query = "INSERT INTO arquivos_xml (payload, status_extracao) VALUES (%s, %s)"
-        values = (xml_string, 0)
+        query = "INSERT INTO arquivos_xml (created_at, updated_at, payload, status_extracao) VALUES (%s, %s, %s, %s)"
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        values = (now, now, xml_string, 0)
 
         cur.execute(query, values)
 

@@ -3,8 +3,7 @@ CONTAINER_ALREADY_STARTED="/db_created/CONTAINER_ALREADY_STARTED_PLACEHOLDER"
 if [ ! -e $CONTAINER_ALREADY_STARTED ]; then
     set -e
     echo "-- First container startup --"
-    sleep 15s
-    python ddl_script.py
+    sleep 18s
     python seed_script.py
     python downloader.py
     python extractor.py

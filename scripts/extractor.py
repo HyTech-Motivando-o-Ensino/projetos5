@@ -2,6 +2,7 @@ import mysql.connector
 from xml.etree import ElementTree as ET
 from Levenshtein import distance
 from typing import List, Dict, Tuple
+from datetime import datetime
 
 conn = mysql.connector.connect(
     # host="localhost",
@@ -15,10 +16,20 @@ conn = mysql.connector.connect(
 cur = conn.cursor(buffered=True)
 
 SQL_INSERTS = {
-    "insert_author": "INSERT INTO autores (nome_completo, resumo_cv, colaborador_cesar) VALUES (%s, %s, %s)",
+    "insert_author": "INSERT INTO autores (created_at, updated_at, nome_completo, resumo_cv, colaborador_cesar) VALUES (%s, %s, %s, %s, %s)",
     "insert_article": "INSERT INTO artigos (natureza, titulo, ano, idioma, doi, periodico_revista_issn, pdf_file, sequencia_producao) VALUES(%s, %s, %s, %s, %s, %s, %s, %s);",
     "insert_author_article": "INSERT INTO autores_artigos (autor_id, artigo_id) VALUES(%s, %s)",
     "insert_supervision": "INSERT INTO orientacoes (titulo, ano, natureza, curso, instituicao, orientador_id) VALUES (%s, %s, %s, %s, %s, %s)",
+    "insert_article_knowledge_field": "INSERT INTO artigo_area_conhecimento (area_conhecimento_id, artigo_id) VALUES (%s, %s)"
+}
+
+SUPERVISION_TYPE_MAP = {
+    "graduacao": "trabalho_conclusao_graduacao",
+    "mestrado": "dissertacao_mestrado",
+    "doutorado": "tese_doutorado",
+    "cientifica": "trabalho_iniciacao_cientifica",
+    "monografia": "monografia_conclusao_curso_aperfeicoamento_especializacao",
+    "outra-natureza": "outra" 
 }
 
 def etree_extraction():
@@ -28,6 +39,22 @@ def etree_extraction():
     ALL_ARTICLES: Dict[int, List[Tuple[int, int, str]]] = {}
     # add supervisions already in the database
     ALL_SUPERVISIONS: Dict[int, List[Tuple[int, str]]] = {}
+
+    knowledge_fields_query = '''
+    SELECT * FROM grande_area_conhecimento
+    '''
+
+    cur.execute(knowledge_fields_query)
+    # [(id, nome, nome_formatado)]
+    knowledge_fields = cur.fetchall()
+    knowledge_fields_by_name = {}
+    # {"CIENCIAS_HUMANAS": 1, "CIENCIAS_SOCIAIS_APLICADAS" 2, ...}
+    for field in knowledge_fields:
+        id = field[0]
+        name = field[1]
+        knowledge_fields_by_name[name] = id
+
+    # print(f"[DEBUG] Areas do conhecimento: {knowledge_fields_by_name}")
 
     query = '''
     SELECT * FROM arquivos_xml t
@@ -46,13 +73,20 @@ def etree_extraction():
         doc = ET.fromstring(payload, ET.XMLParser(encoding='ISO-8859-1'))
         full_name = doc.find("./DADOS-GERAIS").attrib["NOME-COMPLETO"]
         cv_description = doc.find("./DADOS-GERAIS/RESUMO-CV").attrib["TEXTO-RESUMO-CV-RH"]
-        articles = doc.find("./PRODUCAO-BIBLIOGRAFICA/ARTIGOS-PUBLICADOS").findall("ARTIGO-PUBLICADO")
-        supervisions = doc.find("./OUTRA-PRODUCAO/ORIENTACOES-CONCLUIDAS")
+        if doc.find("./PRODUCAO-BIBLIOGRAFICA/ARTIGOS-PUBLICADOS"):
+            articles = doc.find("./PRODUCAO-BIBLIOGRAFICA/ARTIGOS-PUBLICADOS").findall("ARTIGO-PUBLICADO")
+        else:
+            articles = []
+        if doc.find("./OUTRA-PRODUCAO/ORIENTACOES-CONCLUIDAS"):
+            supervisions = doc.find("./OUTRA-PRODUCAO/ORIENTACOES-CONCLUIDAS")
+        else:
+            supervisions = []
 
         print(f"[DEBUG] Autor: {full_name}")
         # print(f"Resumo CV: {cv_description}")
-        
-        tuple_author = (full_name, cv_description, 1)
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        tuple_author = (now, now, full_name, cv_description, 1)
         newcur = conn.cursor(buffered=True)
         newcur.execute(SQL_INSERTS["insert_author"], tuple_author)
         conn.commit()
@@ -64,6 +98,7 @@ def etree_extraction():
             production_sequence = article.attrib["SEQUENCIA-PRODUCAO"]
             basic_data_tag = article.find("./DADOS-BASICOS-DO-ARTIGO")
             details_tag = article.find("./DETALHAMENTO-DO-ARTIGO")
+            knowledge_fields_tag = article.find("./AREAS-DO-CONHECIMENTO")
 
             title = basic_data_tag.attrib["TITULO-DO-ARTIGO"]
             title = title[:MAX_TITLE_LENGTH] if len(title) > MAX_TITLE_LENGTH else title
@@ -71,11 +106,18 @@ def etree_extraction():
             language = basic_data_tag.attrib["IDIOMA"]
             article_type = basic_data_tag.attrib["NATUREZA"]
             doi = basic_data_tag.attrib["DOI"]
-            # periodical = details_tag.attrib["TITULO-DO-PERIODICO-OU-REVISTA"]
             issn = details_tag.attrib["ISSN"]
             dash_pos = issn.find("-")
             if dash_pos != -1:
                 issn = issn[:dash_pos] + issn[dash_pos + 1:]
+            
+            article_knowledge_fields = []
+            if knowledge_fields_tag:
+                for tag in knowledge_fields_tag:
+                    knowledge_field_name = tag.attrib["NOME-GRANDE-AREA-DO-CONHECIMENTO"]
+                    if knowledge_field_name:
+                        article_knowledge_fields.append(knowledge_field_name)
+            # print(f"[DEBUG] Areas do conhecimento do artigo: {article_knowledge_fields}")
 
             # authors = article.findall("AUTORES")
             # print("--------- ARTIGO ---------")
@@ -103,6 +145,20 @@ def etree_extraction():
                     SQL_DATA["article_id"] = newcur.lastrowid
                     ALL_ARTICLES[year].append((SQL_DATA["article_id"], production_sequence, title))
 
+                    article_knowledge_field_tuples = set()
+                    for knowledge_field_name in article_knowledge_fields:
+                        if knowledge_field_name in knowledge_fields_by_name:
+                            article_knowledge_field_tuples.add(
+                                (knowledge_fields_by_name[knowledge_field_name], SQL_DATA["article_id"]))
+
+                    if len(article_knowledge_field_tuples) == 0:
+                        article_knowledge_field_tuples.add((knowledge_fields_by_name["NAO_INFORMADA"], SQL_DATA["article_id"]))
+                    
+                    print(f"[DEBUG] artigos_area_conhecimento: {article_knowledge_field_tuples}")
+
+                    newcur.executemany(SQL_INSERTS["insert_article_knowledge_field"], list(article_knowledge_field_tuples))
+                    conn.commit()
+
                     newcur.execute(SQL_INSERTS["insert_author_article"], (SQL_DATA["author_id"], SQL_DATA["article_id"])) 
                     conn.commit()
                 else:
@@ -123,6 +179,20 @@ def etree_extraction():
 
                         SQL_DATA["article_id"] = newcur.lastrowid
                         ALL_ARTICLES[year].append((SQL_DATA["article_id"], production_sequence, title))
+
+                        article_knowledge_field_tuples = set()
+                        for knowledge_field_name in article_knowledge_fields:
+                            if knowledge_field_name in knowledge_fields_by_name:
+                                article_knowledge_field_tuples.add(
+                                    (knowledge_fields_by_name[knowledge_field_name], SQL_DATA["article_id"]))
+
+                        if len(article_knowledge_field_tuples) == 0:
+                            article_knowledge_field_tuples.add((knowledge_fields_by_name["NAO_INFORMADA"], SQL_DATA["article_id"]))
+
+                        # print(f"[DEBUG] artigos_area_conhecimento: {article_knowledge_field_tuples}")
+
+                        newcur.executemany(SQL_INSERTS["insert_article_knowledge_field"], list(article_knowledge_field_tuples))
+                        conn.commit()
 
                         newcur.execute(SQL_INSERTS["insert_author_article"], (SQL_DATA["author_id"], SQL_DATA["article_id"])) 
                         conn.commit()
@@ -155,10 +225,14 @@ def etree_extraction():
                 sup_title = sup_title[:MAX_TITLE_LENGTH] if len(sup_title) > MAX_TITLE_LENGTH else sup_title
                 sup_year = basic_data_tag.attrib["ANO"]
                 sup_type = basic_data_tag.attrib["NATUREZA"]
-                # student = details_tag.attrib["NOME-DO-ORIENTADO"]
                 institution = details_tag.attrib["NOME-DA-INSTITUICAO"]
 
                 course = details_tag.attrib["NOME-DO-CURSO"]
+
+                for type in SUPERVISION_TYPE_MAP:
+                    if type in sup_type.strip().lower():
+                        sup_type = SUPERVISION_TYPE_MAP[type]
+                        break
 
                 # print("Titulo:", sup_title)
                 # print("Ano:", sup_year)
@@ -168,8 +242,6 @@ def etree_extraction():
                 # print("Curso:", course)
 
                 supervision_tuple = (sup_title, sup_year, sup_type, course, institution, SQL_DATA["author_id"])
-
-                newcur.execute(SQL_INSERTS["insert_supervision"], supervision_tuple) 
 
                 if sup_year not in ALL_SUPERVISIONS:
                     ALL_SUPERVISIONS[sup_year] = []
@@ -183,9 +255,7 @@ def etree_extraction():
                 else:
                     duplicate = False
                     for supervision_id, supervision_title in ALL_SUPERVISIONS[sup_year]:
-                        if (sup_title == supervision_title or
-                            sup_title in supervision_title or
-                            supervision_title in sup_title):
+                        if (sup_title == supervision_title):
                             print("[DEBUG] supervision already in database")
                             print(f"[DEBUG] current supervision: {sup_title}")
                             print(f"[DEBUG] supervision in database: {supervision_title} | id {supervision_id}")
@@ -197,12 +267,13 @@ def etree_extraction():
                         conn.commit()
 
                         SQL_DATA["supervision_id"] = newcur.lastrowid
-                        ALL_SUPERVISIONS[sup_year].append((SQL_DATA["supervision_id"], title))
+                        ALL_SUPERVISIONS[sup_year].append((SQL_DATA["supervision_id"], sup_title))
 
                 # print("--------------------------")
 
-        query = "UPDATE arquivos_xml t SET status_extracao = %s WHERE t.id = %s"
-        newcur.execute(query, (1, SQL_DATA["arquivo_id"]))
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        query = "UPDATE arquivos_xml t SET updated_at = %s, status_extracao = %s WHERE t.id = %s"
+        newcur.execute(query, (now, 1, SQL_DATA["arquivo_id"]))
         conn.commit()
 
 def is_production_sequence_in(grouped_productions: Dict[int, List[Tuple[int, int, str]]],

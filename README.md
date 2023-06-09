@@ -1,4 +1,3 @@
-
 ### **Linguagens e ferramentas utilizadas**
 
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
@@ -18,12 +17,15 @@ $ cd folder
 ## Subir o container MySQL
 
 > Executar o comando docker-compose.
+
 ```bash
 $ docker-compose up --build
 ```
+
 > Ou executar o comando Make.
+
 ```bash
-$ make up
+$ make run
 ```
 
 # Troubleshooting
@@ -33,15 +35,16 @@ $ make up
 É necessário modificar a terminação de linha do arquivo startup_script.sh
 (CRLF para LF) para que ele seja reconhecido pelo container.
 
-
 # Outros comandos
 
 > Resetar o banco de dados
+
 ```bash
 $ docker-compose down -v
 ```
 
 > Resetar o banco de dados (Make)
+
 ```bash
 $ make down-reset
 ```
