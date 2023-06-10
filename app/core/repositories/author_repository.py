@@ -8,6 +8,10 @@ class AuthorRepository():
     def get_all(self) -> List[Autor]:
         results = Autor.objects.all()
         return results
+
+    def get_all_count(self, filter):
+        data = Autor.objects.filter(filter).count()
+        return data
     
     def get_all_with_supervision_count(self) -> List[Dict[str, int]]:
         results = Autor.objects.all() \
