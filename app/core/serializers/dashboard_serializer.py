@@ -8,6 +8,7 @@ from .author_with_supervision_serializer import AuthorWithSupervisionSerializer
 class DashboardSerializer(serializers.Serializer):
     total_articles = serializers.IntegerField(required=True)
     articles_in_last_triennium = serializers.IntegerField(required=True)
+    supervisions_in_last_triennium = serializers.IntegerField(required=True)
     articles_per_year = serializers.ListField(child=ArticlePerYearSerializer())
     articles_per_stratum = serializers.ListField(child=ArticlePerStratumSerializer())
     articles_per_field = serializers.ListField(child=ArticlePerFieldSerializer())
